@@ -17,8 +17,10 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
     - name: Install java dependency 
-      run: sudo apt-get install openjdk-11-jdk
-    - name: display java version
-      run: sudo java -version
+      run: |
+          sudo apt-get install openjdk-8-jdk
+          sudo java -version
     - name: Run build with Gradle Wrapper
-      run: ./gradlew build
+      run: |
+          ./gradlew init
+          ./gradlew build
