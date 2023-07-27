@@ -15,9 +15,9 @@ jobs:
     - name: Checkout project sources
       uses: actions/checkout@v3
     - name: Install java dependency 
-      run: |
-          sudo apt-get install openjdk-8-jdk
-          sudo java -version
+      run: sudo apt-get install openjdk-8-jdk
+    - name: Check Java version
+      run: sudo java -version
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
     - name: Run build with Gradle Wrapper
