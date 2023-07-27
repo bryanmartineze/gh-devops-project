@@ -8,9 +8,6 @@ on:
 
   workflow_dispatch:
 
-
-name: Build Gradle project
-
 jobs:
   build-gradle-project:
     runs-on: ubuntu-latest
