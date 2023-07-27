@@ -14,10 +14,12 @@ jobs:
     steps:
     - name: Checkout project sources
       uses: actions/checkout@v3
-    - name: Install java dependency 
-      run: sudo apt-get install openjdk-8-jdk
+    - name: Set up Java 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: '8'
     - name: Check Java version
-      run: sudo java -version
+      run: java -version
     - name: Setup Gradle
       run: |
           ./gradlew build
