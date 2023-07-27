@@ -1,0 +1,53 @@
+// This application is built in node.js, and there is a plugin for it in Gradle that does
+// a lot of the work for us as far as dealing with node.js builds. We're calling in that
+// plugin here
+plugins {
+  id("com.github.node-gradle.node") version "2.2.4"
+}
+
+// We've also got to confgure the plugin a little bit. This line will instruct the node plugin
+// to download and install node.js and npm locally, for this particular project. It ensures that
+// those are installed during the build, but not system-wide, just within this directory.
+node {
+  version    = '9.11.2'
+  download = true
+}
+
+// Whenever we call the build task (it's a task called build) which will run any and all
+// other tasks that are required to actually call the build "built."
+task build
+
+// Create a task that is the Zip type
+    task zip(type: Zip) {
+// Find the files at . (dot) which means "right here in the root of the directory"
+              from ('.') {
+// Grab all of the files in the root directory, not the files AND subdirectories
+// with their files, just the files sitting right in the root directory.
+      		    include "*"
+// These next few lines have double asterisks, which means EVERYTHING. For each line, we want to grab the
+// directory that we've named, and everything (files and subdirectories) below it in the file tree.
+      		    include "bin/**"
+      		    include "data/**"
+      		    include "node_modules/**"
+      		    include "public/**"
+      		    include "routes/**"
+      		    include "views/**"
+      	    }
+// This is the destination where the zip file is going to land. We're putting it in a directory names dist,
+// which is going to be a subdirectory of the root directory.
+      	    destinationDir(file("dist"))
+// We're naming the zip file itself. When we're done, there should be a trainSchedule.zip sitting in the ./dist
+// directory.
+      	    baseName "trainSchedule"
+          }
+
+// This will make the build task call on the zip task. If zip doesn't finish, the build fails.
+          build.dependsOn zip
+// Here, we want to make sure our zip task runs after npm_build    
+          zip.dependsOn npm_build
+
+// All we need to do, in order for this build to actually run, is to call some of the tasks
+// built in to the node.js and npm plugins. We're going to call them here.
+build.dependsOn npm_build
+npm_build.dependsOn npm_test
+npm_test.dependsOn npmInstall
