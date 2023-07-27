@@ -1,0 +1,23 @@
+permissions:
+  id-token: write
+  #Was changed from read to write to create a checkout -b to gh-pahes
+  contents: write
+
+name: Deploy train schedule
+on: 
+
+  workflow_dispatch:
+
+
+name: Build Gradle project
+
+jobs:
+  build-gradle-project:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout project sources
+      uses: actions/checkout@v3
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+    - name: Run build with Gradle Wrapper
+      run: ./gradlew build
