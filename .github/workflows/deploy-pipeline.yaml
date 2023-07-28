@@ -10,7 +10,7 @@ on:
 
 jobs:
 
-  build-gradle-project:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout project sources
@@ -22,10 +22,16 @@ jobs:
         distribution: 'adopt'
     - name: Check Java version
       run: java -version
-    - name: Setup Gradle
+    - name: Setup Gradle and build
       run: |
           ./gradlew build
           ./gradlew init
+    - name: Archive artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: zipped-bundle
+        path: /dist/trainSchedule.zip   
+
           
   upload:
     runs-on: ubuntu-latest
