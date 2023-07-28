@@ -29,7 +29,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: zipped-bundle
-        path: /dist/trainSchedule.zip
+        path: dist/trainSchedule.zip
     
           
   upload:
