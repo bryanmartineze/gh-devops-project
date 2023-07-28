@@ -26,21 +26,11 @@ jobs:
       run: |
           ./gradlew build
           ./gradlew init
-    - name: Archive artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: zipped-bundle
-        path: /dist/trainSchedule.zip   
-
           
   upload:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: zipped-bundle
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
