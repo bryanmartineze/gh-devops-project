@@ -25,14 +25,19 @@ jobs:
     - name: Setup Gradle and build
       run: |
           ./gradlew build
-          ./gradlew init
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: zipped-bundle
+        path: /dist/trainSchedule.zip
+    
           
   upload:
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
           aws-region: us-east-1
