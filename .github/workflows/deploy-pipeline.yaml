@@ -32,7 +32,7 @@ jobs:
     needs: build
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
           aws-region: us-east-1
