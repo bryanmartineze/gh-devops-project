@@ -28,3 +28,6 @@ Then, you can run the app with:
     npm start
 
 Once it is running, you can access it in a browser at [http://localhost:3000](http://localhost:3000)
+
+# Create access to Terraform Cloud using OIDC
+
