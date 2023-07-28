@@ -47,4 +47,4 @@ jobs:
         role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
         aws-region: us-east-1
      - name: Upload to S3
-        run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
+       run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
