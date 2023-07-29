@@ -71,7 +71,7 @@ jobs:
         id: fmt
         run: terraform fmt -check
         if: steps.fmt.outcome == 'failure'
-          run: terraform fmt
+        run: terraform fmt
       - name: Terraform Validate
         working-directory: terraform
         id: validate
