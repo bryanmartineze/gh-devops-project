@@ -56,12 +56,12 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v2
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - name: Set Terraform CLI Path
-        run: echo "TERRAFORM_CLI_PATH=/home/runner/work/cicd-pipeline-example/terraform" >> $GITHUB_ENV
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
