@@ -73,6 +73,8 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v2
         with:

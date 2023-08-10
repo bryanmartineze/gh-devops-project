@@ -1,4 +1,17 @@
+terraform {
+  cloud {
+    organization = "bryanmartineze-devops"
 
-resource "aws_s3_bucket" "oidc-test" {
-  bucket = "tests-oidc-demo-123124"
+    workspaces {
+      name = "cicd-pipeline-example"
+    }
+  }
+}
+
+variable "aws_region" {
+    
+}
+
+provider "aws" {
+  region = var.aws_region
 }
