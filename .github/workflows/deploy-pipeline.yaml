@@ -61,7 +61,7 @@ jobs:
       - name: build docker image
         run: docker build -t bryanmartineze/train-schedule:latest .
       - name: docker push
-        run: docker push ${{ DOCKER_USER }}/train-schedule
+        run: docker push ${{ secrets.DOCKER_USER }}/train-schedule
        
   test-on-terraform:
     runs-on: ubuntu-latest
