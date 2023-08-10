@@ -59,6 +59,7 @@ jobs:
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
       - name: build docker image
+        working-directory: cicd-pipeline-example
         run: docker build -t bryanmartineze/train-schedule:latest .
       - name: docker push
         run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
@@ -71,8 +72,6 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout project sources
-        uses: actions/checkout@v3
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v2
         with:
