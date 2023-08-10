@@ -49,9 +49,12 @@ jobs:
        run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
        
   push-to-dockerhub:
+
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
       - name: docker login
         env: 
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -59,8 +62,6 @@ jobs:
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
       - name: build docker image
-        working-directory: cicd-pipeline-example
-        run: docker build -t bryanmartineze/train-schedule:latest .
       - name: docker push
         run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
        
