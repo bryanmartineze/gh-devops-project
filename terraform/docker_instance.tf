@@ -36,7 +36,7 @@ data "aws_ami" "latest_amazon_linux_2023" {
 resource "aws_security_group" "docker-test" {
   name        = "docker-test-security-group"
   description = "Allow ports 22, 8080 and icmp"
-  vpc_id      = aws_vpc.siisa.id
+  vpc_id      = var.default_vpc
 
   tags = {
     Name = "docker-test-security-group"
@@ -59,7 +59,7 @@ resource "aws_security_group" "docker-test" {
   ingress {
     from_port   = 8080
     to_port     = 8080
-    protocol    = "icmp"
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
