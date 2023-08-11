@@ -1,0 +1,16 @@
+- name: Connect to docker-test-instance, install dependencies and run docker container
+  hosts: all
+  become: true
+  vars:
+    source: "{{ source }}"
+  tasks:
+    - name: Install Docker
+      become: true
+      apt:
+        name: docker.io
+        state: present
+    - name: Pull train-schedule image from dockerhub
+      become: true
+      command: docker pull bryanmartineze/train-schedule:latest
+    - name: Run docker image
+      command: docker run -d -p 8080:8080 bryanmartineze/train-schedule:latest

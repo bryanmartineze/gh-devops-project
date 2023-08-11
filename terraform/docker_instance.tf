@@ -10,11 +10,6 @@ resource "tls_private_key" "rsa" {
   rsa_bits  = 4096
 }
 
-# Output the private key content
-output "docker_key" {
-  sensitive = true
-  value = tls_private_key.rsa.private_key_pem
-}
 
 #fetching latest version of amazon linux
 data "aws_ami" "latest_amazon_linux_2023" {

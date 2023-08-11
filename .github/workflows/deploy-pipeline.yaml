@@ -1,6 +1,6 @@
 permissions:
   id-token: write
-  #Was changed from read to write to create a checkout -b to gh-pahes
+  #Was changed from read to write to create a checkout -b to gh-pages
   contents: write
 
 name: Deploy train schedule
@@ -10,42 +10,42 @@ on:
 
 jobs:
 
-  build:
+  build-and-test-with-gradle:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout project sources
-      uses: actions/checkout@v3
-    - name: Set up Java 8
-      uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'adopt'
-    - name: Check Java version
-      run: java -version
-    - name: Setup Gradle and build
-      run: |
-          ./gradlew build
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: zipped-bundle
-        path: dist/trainSchedule.zip
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Set up Java 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Check Java version
+        run: java -version
+      - name: Setup Gradle and build
+        run: |
+            ./gradlew build
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: zipped-bundle
+          path: dist/trainSchedule.zip
     
           
-  upload:
+  upload-artifact-to-s3:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-and-test-with-gradle
     steps:
-     - name: Download Artifact
+      - name: Download Artifact
        uses: actions/download-artifact@v2
        with:
         name: zipped-bundle
-     - name: Configure AWS Credentials
+      - name: Configure AWS Credentials
        uses: aws-actions/configure-aws-credentials@v2
        with:
         role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
         aws-region: us-east-1
-     - name: Upload to S3
+      - name: Upload to S3
        run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
        
   push-to-dockerhub:
@@ -65,7 +65,7 @@ jobs:
       - name: docker push
         run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
        
-  test-on-terraform:
+  provision-test-infrastructure-with-terraform:
     runs-on: ubuntu-latest
     needs: push-to-dockerhub
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
@@ -105,3 +105,42 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve
 
+  provision-docker-with-ansible:
+    runs-on: ubuntu-latest
+    needs: provision-test-infrastructure-with-terraform
+    steps:      
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v2
+    - name: Install dependencies
+      run: |
+        python -m pip install ansible
+    - name: create inventory.ini
+      run: |
+        cd terraform
+        ip=$(terraform output docker_ip)
+        cd ../ansible
+        touch inventory.ini
+        echo $ip > inventory.ini
+    - name: retrieve ssh key from terraform output
+      run: |
+        cd terraform
+        SSH_PRIVATE_KEY=$(terraform output -raw docker_key)
+    - name: Add hosts to known_hosts
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      run: |
+        mkdir -p ~/.ssh
+        touch ~/.ssh/known_hosts
+        ssh-keyscan -f inventory.ini > known_hosts
+        cat known_hosts >> ~/.ssh/known_hosts
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+        ssh-add - <<< $SSH_PRIVATE_KEY
+    - name: Run ansible playbook
+      env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
+      run: |
+        cd ansible
+        ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
+           
