@@ -109,8 +109,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: provision-test-infrastructure-with-terraform
     steps:      
-    - name: Checkout repository
-      uses: actions/checkout@v3
     - name: Set up Python
       uses: actions/setup-python@v2
     - name: Install dependencies
