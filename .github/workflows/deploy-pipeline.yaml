@@ -115,15 +115,15 @@ jobs:
       run: |
         python -m pip install ansible
     - name: create inventory.ini
+      working-directory: terraform
       run: |
-        cd terraform
         ip=$(terraform output docker_ip)
         cd ../ansible
         touch inventory.ini
         echo $ip > inventory.ini
     - name: retrieve ssh key from terraform output
+      working-directory:
       run: |
-        cd terraform
         SSH_PRIVATE_KEY=$(terraform output -raw docker_key)
     - name: Add hosts to known_hosts
       env:
@@ -136,9 +136,10 @@ jobs:
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         ssh-add - <<< $SSH_PRIVATE_KEY
     - name: Run ansible playbook
+      working-directory: ansible
       env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
       run: |
-        cd ansible
+       
         ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
            
