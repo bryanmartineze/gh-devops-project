@@ -59,7 +59,7 @@ resource "aws_security_group" "docker-test" {
 
 #Creation of Test Instance
 resource "aws_instance" "docker-instance" {
-  ami           = data.aws_ssm_parameter.latest_amazon_linux_2023.id 
+  ami           = data.aws_ssm_parameter.latest_amazon_linux_2023.value
   instance_type = "t3a.small"                               # Adjust as needed
 
   key_name        = aws_key_pair.docker_key.key_name
