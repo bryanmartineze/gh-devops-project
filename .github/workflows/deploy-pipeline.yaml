@@ -108,9 +108,6 @@ jobs:
         working-directory: terraform
         run: |
           ip=$(terraform output docker_ip)
-          cd ..
-          touch inventory.ini
-          echo $ip > inventory.ini
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
@@ -128,7 +125,10 @@ jobs:
       - name: Add hosts to known_hosts
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        working-directory: ansible
         run: |
+          touch inventory.ini
+          echo $ip > inventory.ini
           mkdir -p ~/.ssh
           touch ~/.ssh/known_hosts
           ssh-keyscan -f inventory.ini > known_hosts
