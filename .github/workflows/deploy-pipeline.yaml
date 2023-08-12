@@ -120,8 +120,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: provision-test-infrastructure-with-terraform
     steps:
-      - name: Checkout project sources
-        uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v2
       - name: Install dependencies
@@ -133,7 +131,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           touch ~/.ssh/known_hosts
-          ssh-keyscan -f inventory.ini > known_hosts
+          ssh-keyscan -f ansible/inventory.ini > known_hosts
           cat known_hosts >> ~/.ssh/known_hosts
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add - <<< $SSH_PRIVATE_KEY
@@ -142,5 +140,5 @@ jobs:
         env:
             SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
         run: |
-          ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
+          ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i ansible/inventory.ini -vvv
            
