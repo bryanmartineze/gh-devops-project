@@ -104,41 +104,43 @@ jobs:
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
+      - name: create inventory.ini
+        working-directory: terraform
+        run: |
+          ip=$(terraform output docker_ip)
+          cd ../ansible
+          touch inventory.ini
+          echo $ip > inventory.ini
+      - name: retrieve ssh key from terraform output
+        working-directory: terraform
+        run: |
+          SSH_PRIVATE_KEY=$(terraform output -raw docker_key)
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
     needs: provision-test-infrastructure-with-terraform
-    steps:      
-    - name: Set up Python
-      uses: actions/setup-python@v2
-    - name: Install dependencies
-      run: |
-        python -m pip install ansible
-    - name: create inventory.ini
-      working-directory: terraform
-      run: |
-        ip=$(terraform output docker_ip)
-        cd ../ansible
-        touch inventory.ini
-        echo $ip > inventory.ini
-    - name: retrieve ssh key from terraform output
-      working-directory: terraform
-      run: |
-        SSH_PRIVATE_KEY=$(terraform output -raw docker_key)
-    - name: Add hosts to known_hosts
-      env:
-        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      run: |
-        mkdir -p ~/.ssh
-        touch ~/.ssh/known_hosts
-        ssh-keyscan -f inventory.ini > known_hosts
-        cat known_hosts >> ~/.ssh/known_hosts
-        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        ssh-add - <<< $SSH_PRIVATE_KEY
-    - name: Run ansible playbook
-      working-directory: ansible
-      env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
-      run: |
-        ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: |
+          python -m pip install ansible
+      - name: Add hosts to known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -f inventory.ini > known_hosts
+          cat known_hosts >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< $SSH_PRIVATE_KEY
+      - name: Run ansible playbook
+        working-directory: ansible
+        env:
+            SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
+        run: |
+          ansible-playbook playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
            
