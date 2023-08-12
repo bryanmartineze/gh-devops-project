@@ -104,10 +104,10 @@ jobs:
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
-      - name: create inventory.ini
+      - name: retrieve docker_ip from terraform output
         working-directory: terraform
         run: |
-          ip=$(terraform output -raw docker_ip)
+          terraform output -raw docker_ip > /tmp/inventory.ini
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
@@ -124,13 +124,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install ansible
-      - name: Add hosts to known_hosts
+     # - name: Add hosts to known_hosts
        # env:
         #  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-        working-directory: ansible
-        run: |
-          touch inventory.ini
-          echo $ip > inventory.ini
+      #  working-directory: ansible
+       # run: |
+       #   touch inventory.ini
+        #  echo $ip > inventory.ini
         # mkdir -p ~/.ssh
         # touch ~/.ssh/known_hosts
         # ssh-keyscan -f inventory.ini > known_hosts
@@ -139,10 +139,10 @@ jobs:
         # ssh-add - <<< $SSH_PRIVATE_KEY
       - name: wait till the ec2 instance is live
         run: |
-          sleep 90
+          sleep 120
       - name: Run ansible playbook
         working-directory: ansible
       #  env:
        #     SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i inventory.ini -vvv
+          ansible-playbook /tmp/docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
