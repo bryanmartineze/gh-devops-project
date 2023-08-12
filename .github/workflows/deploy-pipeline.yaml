@@ -137,6 +137,9 @@ jobs:
         # cat known_hosts >> ~/.ssh/known_hosts
         # ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         # ssh-add - <<< $SSH_PRIVATE_KEY
+      - name: wait till the ec2 instance is live
+        run: |
+          sleep 90
       - name: Run ansible playbook
         working-directory: ansible
       #  env:

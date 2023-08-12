@@ -13,4 +13,5 @@
       become: true
       command: docker pull bryanmartineze/train-schedule:latest
     - name: Run docker image
+      become: true
       command: docker run -d -p 8080:8080 bryanmartineze/train-schedule:latest

@@ -12,18 +12,8 @@ resource "tls_private_key" "rsa" {
 
 
 #fetching latest version of amazon linux
-data "aws_ami" "latest_amazon_linux_2023" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-kernel-6.1-x86_64"]
-  }
-
-  filter {
-    name   = "owner-alias"
-    values = ["amazon"]
-  }
+data "aws_ssm_parameter" "latest_amazon_linux_2023" {  
+   name     = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
 }
 
 #Creation of security group
@@ -69,7 +59,7 @@ resource "aws_security_group" "docker-test" {
 
 #Creation of Test Instance
 resource "aws_instance" "docker-instance" {
-  ami           = data.aws_ami.latest_amazon_linux_2023.id 
+  ami           = data.aws_ssm_parameter.latest_amazon_linux_2023.id 
   instance_type = "t3a.small"                               # Adjust as needed
 
   key_name        = aws_key_pair.docker_key.key_name
