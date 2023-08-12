@@ -145,4 +145,4 @@ jobs:
       #  env:
        #     SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
         run: |
-          ansible-playbook /tmp/docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
