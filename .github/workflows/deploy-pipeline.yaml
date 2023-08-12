@@ -107,7 +107,7 @@ jobs:
       - name: create inventory.ini
         working-directory: terraform
         run: |
-          ip=$(terraform output docker_ip)
+          ip=$(terraform output -raw docker_ip)
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
