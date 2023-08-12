@@ -111,7 +111,8 @@ jobs:
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
-          SSH_PRIVATE_KEY=$(terraform output -raw docker_key)
+          terraform output -raw docker_key > docker_key.pem
+          mv docker_key.pem /tmp/docker_key.pem && chmod 600 docker_key.pem
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
@@ -125,21 +126,21 @@ jobs:
         run: |
           python -m pip install ansible
       - name: Add hosts to known_hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+       # env:
+        #  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         working-directory: ansible
         run: |
           touch inventory.ini
           echo $ip > inventory.ini
-          mkdir -p ~/.ssh
-          touch ~/.ssh/known_hosts
-          ssh-keyscan -f inventory.ini > known_hosts
-          cat known_hosts >> ~/.ssh/known_hosts
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< $SSH_PRIVATE_KEY
+        # mkdir -p ~/.ssh
+        # touch ~/.ssh/known_hosts
+        # ssh-keyscan -f inventory.ini > known_hosts
+        # cat known_hosts >> ~/.ssh/known_hosts
+        # ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+        # ssh-add - <<< $SSH_PRIVATE_KEY
       - name: Run ansible playbook
         working-directory: ansible
-        env:
-            SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
+      #  env:
+       #     SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
         run: |
-          ansible-playbook docker-test-playbook.yml -u root --private-key=$SSH_PRIVATE_KEY -i inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u root --private-key=/tmp/docker_key.pem -i inventory.ini -vvv
