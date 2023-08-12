@@ -111,8 +111,7 @@ jobs:
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
-          terraform output -raw docker_key > docker_key.pem
-          mv docker_key.pem /tmp/docker_key.pem && chmod 600 docker_key.pem
+          terraform output -raw docker_key > /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
