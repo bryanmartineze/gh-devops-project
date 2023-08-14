@@ -117,7 +117,7 @@ jobs:
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
-          terraform output -raw docker_key > /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem
+          terraform output -raw docker_key > /tmp/docker_key.pem
       - name: upload ssh key
         uses: actions/upload-artifact@v2
         with:
@@ -139,6 +139,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: ssh-key
+        run: |
+          mv docker_key.pem /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem
       - name: Add hosts to inventory
         run: |
           echo "[servers]" > /tmp/inventory.ini
@@ -147,6 +149,5 @@ jobs:
         run: |
           sleep 120
       - name: Run ansible playbook
-        working-directory: ansible
         run: |
           ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
