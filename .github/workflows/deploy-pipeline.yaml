@@ -146,7 +146,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           touch ~/.ssh/known_hosts
-          ssh-keyscan -f inventory.ini > known_hosts
+          ssh-keyscan -f /tmp/inventory.ini > known_hosts
           cat known_hosts >> ~/.ssh/known_hosts
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add - <<< "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}"
