@@ -136,7 +136,6 @@ jobs:
         with:
           name: ssh-key
       - name: Add hosts to inventory
-        working-directory: ansible
         run: |
           echo "[servers]" > /tmp/inventory.ini
           echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
