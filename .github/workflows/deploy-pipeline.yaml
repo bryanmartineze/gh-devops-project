@@ -109,7 +109,7 @@ jobs:
         id: retrieve_ip
         working-directory: terraform
         run: |
-          echo "::set-output name=ip::$(terraform output -raw docker_ip)"
+          echo "::set-output name=ip::${ terraform output -raw docker_ip }"
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
