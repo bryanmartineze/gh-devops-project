@@ -119,8 +119,8 @@ jobs:
         id: retrieve_key
         working-directory: terraform
         run: |
-          docker_key=$(terraform output -raw docker_key)
-          echo docker_key=$docker_key >> $GITHUB_OUTPUT
+          docker_ssh_key=$(terraform output -raw docker_key)
+          echo docker_ssh_key=$docker_ssh_key >> $GITHUB_OUTPUT
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
@@ -149,10 +149,10 @@ jobs:
           ssh-keyscan -f /tmp/inventory.ini > known_hosts
           cat known_hosts >> ~/.ssh/known_hosts
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}"
+          ssh-add - <<< "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_ssh_key }}"
       - name: Run ansible playbook
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock   
         working-directory: ansible
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key="${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}" -i /tmp/inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key="${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_ssh_key }}" -i /tmp/inventory.ini -vvv
