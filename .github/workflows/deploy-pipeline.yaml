@@ -140,7 +140,7 @@ jobs:
       - name: Add hosts to inventory
         run: |
           echo "[servers]" > /tmp/inventory.ini
-          echo "ip=${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
+          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
