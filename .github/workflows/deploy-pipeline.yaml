@@ -74,7 +74,6 @@ jobs:
         shell: bash
     outputs: 
           ip: ${{ steps.retrieve_ip.outputs.ip }}
-          docker_ssh_key: ${{ steps.retrieve_key.outputs.docker_ssh_key }}
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v3
@@ -119,8 +118,12 @@ jobs:
         id: retrieve_key
         working-directory: terraform
         run: |
-          docker_ssh_key=$(terraform output -raw docker_key)
-          echo docker_ssh_key=$docker_ssh_key >> $GITHUB_OUTPUT
+          terraform output -raw docker_key > /tmp/docker_key.pem
+      - name: upload ssh key to archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: ssh-key
+          path: /tmp/docker_key.pem
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
@@ -137,6 +140,13 @@ jobs:
         run: |
           echo "[servers]" > /tmp/inventory.ini
           echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
+      - name: download ssh key
+        uses: actions/download-artifact@v2
+        with:
+          name: ssh-key
+      - name: move ssh key to /tmp/
+        run: |
+          mv docker_key.pem /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem 
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
@@ -149,10 +159,10 @@ jobs:
           ssh-keyscan -f /tmp/inventory.ini > known_hosts
           cat known_hosts >> ~/.ssh/known_hosts
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_ssh_key }}"
+          ssh-add /tmp/docker_key.pem
       - name: Run ansible playbook
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock   
         working-directory: ansible
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key="${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_ssh_key }}" -i /tmp/inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
