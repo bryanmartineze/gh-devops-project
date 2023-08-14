@@ -74,6 +74,7 @@ jobs:
         shell: bash
     outputs: 
           ip: ${{ steps.retrieve_ip.outputs.ip }}
+          docker_ssh_key: ${{ steps.retrieve_key.outputs.io }}
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v3
@@ -115,14 +116,11 @@ jobs:
           ip=$(terraform output -raw docker_ip)
           echo ip=$ip >> $GITHUB_OUTPUT
       - name: retrieve ssh key from terraform output
+        id: retrieve_key
         working-directory: terraform
         run: |
-          terraform output -raw docker_key > /tmp/docker_key.pem
-      - name: upload ssh key
-        uses: actions/upload-artifact@v2
-        with:
-          name: ssh-key
-          path: /tmp/docker_key.pem
+          docker_key=$(terraform output -raw docker_key)
+          echo docker_key=$docker_key >> $GITHUB_OUTPUT
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
@@ -135,13 +133,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install ansible
-      - name: Download ssh key artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: ssh-key
-      - name: move ssh key to /tmp
-        run: |
-          mv docker_key.pem /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem
       - name: Add hosts to inventory
         run: |
           echo "[servers]" > /tmp/inventory.ini
@@ -149,7 +140,19 @@ jobs:
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
+      - name: Add hosts to known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -f inventory.ini > known_hosts
+          cat known_hosts >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}"
       - name: Run ansible playbook
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock   
         working-directory: ansible
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key="${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}" -i /tmp/inventory.ini -vvv
