@@ -111,7 +111,8 @@ jobs:
         id: retrieve_ip
         working-directory: terraform
         run: |
-          echo ip=$(terraform output -raw docker_ip) >> $GITHUB_OUTPUT
+          ip=$(terraform output -raw docker_ip)
+          echo ip=$ip >> $GITHUB_OUTPUT
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
