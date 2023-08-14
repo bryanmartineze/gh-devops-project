@@ -132,19 +132,18 @@ jobs:
         run: |
           python -m pip install ansible
       - name: Download ssh key artifact
-        working-directory: ansible
         uses: actions/download-artifact@v2
         with:
           name: ssh-key
       - name: Add hosts to inventory
         working-directory: ansible
         run: |
-          echo "[servers]" > inventory.ini
-          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> inventory.ini
+          echo "[servers]" > /tmp/inventory.ini
+          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
       - name: Run ansible playbook
         working-directory: ansible
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=docker_key.pem -i inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
