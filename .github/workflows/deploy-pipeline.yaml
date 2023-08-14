@@ -72,6 +72,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs: 
+          ip: ${{ steps.retrieve_ip.outputs.ip }}
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v3
@@ -109,7 +111,7 @@ jobs:
         id: retrieve_ip
         working-directory: terraform
         run: |
-          echo "::set-output name=ip::${ terraform output -raw docker_ip }"
+          echo "ip=(terraform output -raw docker_ip)" >> $GITHUB_OUTPUT 
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
@@ -138,7 +140,7 @@ jobs:
       - name: Add hosts to inventory
         run: |
           echo "[servers]" > /tmp/inventory.ini
-          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
+          echo "ip=${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
