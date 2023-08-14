@@ -149,7 +149,7 @@ jobs:
           ssh-keyscan -f /tmp/inventory.ini > known_hosts
           cat known_hosts >> ~/.ssh/known_hosts
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ssh-add - <<< "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}"
+          ssh-add - <<< echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.docker_key }}"
       - name: Run ansible playbook
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock   
