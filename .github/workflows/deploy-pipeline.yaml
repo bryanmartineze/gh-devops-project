@@ -102,16 +102,23 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
       - name: Terraform Apply
+        id: apply
         working-directory: terraform
         run: terraform apply -auto-approve
       - name: retrieve docker_ip from terraform output
+        id: retrieve_ip
         working-directory: terraform
         run: |
-          terraform output -raw docker_ip > /tmp/inventory.ini
+          echo "::set-output name=ip::$(terraform output -raw docker_ip)"
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
           terraform output -raw docker_key > /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem
+      - name: upload ssh key
+        uses: actions/upload-artifact@v2
+        with:
+          name: ssh-key
+          path: /tmp/docker_key.pem
 
   provision-docker-with-ansible:
     runs-on: ubuntu-latest
@@ -121,28 +128,24 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v2
+
       - name: Install dependencies
         run: |
           python -m pip install ansible
-     # - name: Add hosts to known_hosts
-       # env:
-        #  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      #  working-directory: ansible
-       # run: |
-       #   touch inventory.ini
-        #  echo $ip > inventory.ini
-        # mkdir -p ~/.ssh
-        # touch ~/.ssh/known_hosts
-        # ssh-keyscan -f inventory.ini > known_hosts
-        # cat known_hosts >> ~/.ssh/known_hosts
-        # ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        # ssh-add - <<< $SSH_PRIVATE_KEY
+      - name: Download ssh key artifact
+        working-directory: ansible
+        uses: actions/download-artifact@v2
+        with:
+          name: ssh-key
+      - name: Add hosts to inventory
+        working-directory: ansible
+        run: |
+          echo "[servers]" > inventory.ini
+          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> inventory.ini
       - name: wait till the ec2 instance is live
         run: |
           sleep 120
       - name: Run ansible playbook
         working-directory: ansible
-      #  env:
-       #     SSH_AUTH_SOCK: /tmp/ssh_agent.sock              
         run: |
-          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=docker_key.pem -i inventory.ini -vvv
