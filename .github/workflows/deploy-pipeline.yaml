@@ -74,7 +74,7 @@ jobs:
         shell: bash
     outputs: 
           ip: ${{ steps.retrieve_ip.outputs.ip }}
-          docker_ssh_key: ${{ steps.retrieve_key.outputs.io }}
+          docker_ssh_key: ${{ steps.retrieve_key.outputs.docker_ssh_key }}
     steps:
       - name: Checkout project sources
         uses: actions/checkout@v3
