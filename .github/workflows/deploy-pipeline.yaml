@@ -150,5 +150,6 @@ jobs:
         run: |
           sleep 120
       - name: Run ansible playbook
+        working-directory: ansible
         run: |
           ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
