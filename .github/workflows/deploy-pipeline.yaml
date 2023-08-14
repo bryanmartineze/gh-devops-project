@@ -112,7 +112,7 @@ jobs:
         working-directory: terraform
         run: |
           ip=$(terraform output -raw docker_ip)
-          echo $ip >> $GITHUB_OUTPUT
+          echo "::set-output name=ip::$ip"
       - name: retrieve ssh key from terraform output
         working-directory: terraform
         run: |
