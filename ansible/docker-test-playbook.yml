@@ -19,14 +19,6 @@
         - yum-utils
         - device-mapper-persistent-data
         - lvm2
-        
-    - name: Add extras repository
-      shell: yum-config-manager --enable extras
-
-    - name: clean yum metadata cache
-      command: yum clean metadata
-      args:
-        warn: false
 
     - name: Ensure a list of yum packages are installed
       yum:
