@@ -26,7 +26,7 @@ jobs:
   #       run: |
   #           ./gradlew build
   #     - name: Archive artifacts
-  #       uses: actions/upload-artifact@v2
+  #       uses: actions/upload-artifact@v3
   #       with:
   #         name: zipped-bundle
   #         path: dist/trainSchedule.zip
@@ -120,7 +120,7 @@ jobs:
         run: |
           terraform output -raw docker_key > /tmp/docker_key.pem
       - name: upload ssh key to archive
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ssh-key
           path: /tmp/docker_key.pem
