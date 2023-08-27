@@ -10,6 +10,13 @@ resource "aws_iam_role" "eks_cluster" {
         Principal = {
           Service = "eks.amazonaws.com"
         }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
       }
     ]
   })
@@ -19,6 +26,18 @@ resource "aws_iam_policy_attachment" "eks_cluster" {
   name = "attach-eks-cluster-policy"
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   roles      = [aws_iam_role.eks_cluster.name]
+}
+
+resource "aws_iam_policy_attachment" "eks_managed_policies" {
+  name       = "eks-managed-policies"
+  roles      = [aws_iam_role.eks_cluster.name]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_policy_attachment" "ecr_managed_policies" {
+  name       = "ecr-managed-policies"
+  roles      = [aws_iam_role.eks_cluster.name]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 resource "aws_eks_cluster" "trainschedule" {
