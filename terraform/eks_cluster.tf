@@ -1,104 +1,133 @@
-resource "aws_iam_role" "eks_cluster" {
-  name = "eks-cluster-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "eks.amazonaws.com"
-        }
-      },
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 19.0"
 
-resource "aws_iam_policy_attachment" "eks_cluster" {
-  name = "attach-eks-cluster-policy"
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  roles      = [aws_iam_role.eks_cluster.name]
-}
+  cluster_name    = "trainschedule"
+  cluster_version = "1.25"
 
-resource "aws_iam_policy_attachment" "eks_managed_policies" {
-  name       = "eks-managed-policies"
-  roles      = [aws_iam_role.eks_cluster.name]
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
+  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
 
-resource "aws_iam_policy_attachment" "ecr_managed_policies" {
-  name       = "ecr-managed-policies"
-  roles      = [aws_iam_role.eks_cluster.name]
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_eks_cluster" "trainschedule" {
-  name     = "trainschedule"
-  role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.25"  # Change this to your desired EKS version
-  
-  depends_on = [
-    aws_iam_policy_attachment.eks_cluster,
-  ]
-  
-  vpc_config {
-      subnet_ids = [
-          aws_subnet.private_subnet_1.id,  # Replace with the subnet IDs of your desired AZs
-          aws_subnet.private_subnet_2.id,
-          aws_subnet.private_subnet_3.id,
-      ]
-  }
-}
-
-
-resource "aws_eks_node_group" "trainschedule" {
-  cluster_name    = aws_eks_cluster.trainschedule.name
-  node_group_name = "trainschedule-node-group"
-  node_role_arn = aws_iam_role.eks_cluster.arn
-  
-  scaling_config {
-    desired_size = 2
-    max_size     = 2
-    min_size     = 1
-   }
-   
-  subnet_ids = [
-    aws_subnet.private_subnet_1.id,  # Replace with the subnet IDs of your desired AZs
-    aws_subnet.private_subnet_2.id,
-    aws_subnet.private_subnet_3.id,
-  ]
-  
-  # Add the block_device_mappings configuration for gp3 volumes
-  launch_template {
-    id = aws_launch_template.trainschedule.id
-    version = "$Latest"  # Use the latest launch template version
-  }
-
-  depends_on = [
-    aws_eks_cluster.trainschedule,
-  ]
-  
-}
-
-resource "aws_launch_template" "trainschedule" {
-  name_prefix   = "trainschedule-launch-template"
-  instance_type = "t3.small"  # Change this to your desired instance type
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-
-    ebs {
-      volume_size = 20
-      volume_type = "gp3"
-      throughput  = 125
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
     }
   }
+
+  vpc_id                   = aws_vpc.production_vpc.id
+  subnet_ids               = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id, aws_subnet.private_subnet_3.id]
+  control_plane_subnet_ids = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id, aws_subnet.public_subnet_3.id]
+
+  # EKS Managed Node Group(s)
+  eks_managed_node_group_defaults = {
+    instance_types = ["t3.small", "t3.medium", "t3.large", "t3a.small", "t3a.medium", "t3a.large"]
+  }
+
+  eks_managed_node_groups = {
+    blue = {}
+    green = {
+      min_size     = 1
+      max_size     = 2
+      desired_size = 2
+
+      instance_types = ["t3.small"]
+      capacity_type  = "SPOT"
+    }
+  }
+
+  # Fargate Profile(s)
+  fargate_profiles = {
+    default = {
+      name = "default"
+      selectors = [
+        {
+          namespace = "default"
+        }
+      ]
+    }
+  }
+  
+  cluster_security_group_additional_rules = {
+    ingress_all_443_api = {
+      description = "API all ingress"
+      protocol = "tcp"
+      from_port = 443
+      to_port = 443
+      type = "ingress"
+      cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
+      }
+  }
+  
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol = "-1"
+      from_port = 0
+      to_port = 0
+      type = "ingress"
+      self = true
+    }
+    egress_all = {
+      description = "Node all egress"
+      protocol = "-1"
+      from_port = 0
+      to_port = 0
+      type = "egress"
+      cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
+     }
+  }
+  
+
+  # aws-auth configmap
+  manage_aws_auth_configmap = true
+
+  # aws_auth_roles = [
+  #   {
+  #     rolearn  = "arn:aws:iam::66666666666:role/role1"
+  #     username = "role1"
+  #     groups   = ["system:masters"]
+  #   },
+  # ]
+
+  aws_auth_users = [
+    {
+      userarn  = var.aws_eks_admin_arn
+      username = "swo-admin"
+      groups   = ["system:masters"]
+    },
+  ]
+
+  aws_auth_accounts = [
+    var.aws_account_id,
+  ]
+
+  tags = {
+    Environment = "dev"
+    Terraform   = "true"
+  }
+}
+
+data "aws_eks_cluster" "trainschedule" {
+  name       = module.eks.cluster_name
+  depends_on = [module.eks.cluster_name]
+}
+
+data "aws_eks_cluster_auth" "trainschedule" {
+  name       = module.eks.cluster_name
+  depends_on = [module.eks.cluster_name]
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.trainschedule.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.trainschedule.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.trainschedule.token
 }

@@ -9,7 +9,15 @@ terraform {
 }
 
 variable "aws_region" {
-    
+
+}
+
+variable "aws_account_id" {
+
+}
+
+variable "aws_eks_admin_arn" {
+
 }
 
 provider "aws" {
