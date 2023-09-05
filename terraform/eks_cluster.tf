@@ -67,6 +67,13 @@ module "eks" {
   }
   
   node_security_group_additional_rules = {
+    ingress_allow_access_from_alb_sg = {
+      type                     = "ingress"
+      protocol                 = "-1"
+      from_port                = 0
+      to_port                  = 0
+      source_security_group_id = aws_security_group.alb.id
+    }
     ingress_self_all = {
       description = "Node to node all ports/protocols"
       protocol = "-1"
@@ -100,14 +107,20 @@ module "eks" {
 
   aws_auth_users = [
     {
-      userarn  = var.aws_eks_admin_arn
+      userarn  = var.aws_eks_admin1_arn
       username = "swo-admin"
+      groups   = ["system:masters"]
+    },
+    {
+      userarn  = var.aws_eks_admin2_arn
+      username = "eks-admin"
       groups   = ["system:masters"]
     },
   ]
 
   aws_auth_accounts = [
     var.aws_account_id,
+    
   ]
 
   tags = {
@@ -130,4 +143,22 @@ provider "kubernetes" {
   host                   = data.aws_eks_cluster.trainschedule.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.trainschedule.certificate_authority[0].data)
   token                  = data.aws_eks_cluster_auth.trainschedule.token
+}
+
+provider "helm" {
+  kubernetes {
+  host                   = data.aws_eks_cluster.trainschedule.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.trainschedule.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.trainschedule.token
+  }
+}
+
+# deploy spot termination handler
+resource "helm_release" "spot_termination_handler" {
+  name          = "aws-node-termination-handler"
+  chart         = "aws-node-termination-handler"
+  repository    = "https://aws.github.io/eks-charts"
+  version       = "0.21.0"
+  namespace     = "kube-system"
+  wait_for_jobs = true
 }

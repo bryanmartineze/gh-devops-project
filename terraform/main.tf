@@ -16,7 +16,11 @@ variable "aws_account_id" {
 
 }
 
-variable "aws_eks_admin_arn" {
+variable "aws_eks_admin1_arn" {
+
+}
+
+variable "aws_eks_admin2_arn" {
 
 }
 
