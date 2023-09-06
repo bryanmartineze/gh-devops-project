@@ -21,9 +21,9 @@ module "eks" {
     }
   }
 
-  vpc_id                   = aws_vpc.production_vpc.id
-  subnet_ids               = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id, aws_subnet.private_subnet_3.id]
-  control_plane_subnet_ids = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id, aws_subnet.public_subnet_3.id]
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.public_subnets
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
