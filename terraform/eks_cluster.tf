@@ -4,7 +4,7 @@ module "eks" {
   version = "~> 19.0"
 
   cluster_name    = "trainschedule"
-  cluster_version = "1.25"
+  cluster_version = "1.24"
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access = true
   cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
