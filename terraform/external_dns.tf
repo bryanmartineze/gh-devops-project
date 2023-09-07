@@ -156,12 +156,12 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = "arn:aws:iam::${var.aws_account_id}:role/external_dns"
+    value = "arn:aws:iam::${var.aws_account_id}:role/external-dns"
     }
 
   set {
     name  = "domainFilters"
-    value = "{${"swodevops.net"}}"
+    value = "{swodevops.net}"
   }
 
   set {
