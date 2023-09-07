@@ -1,24 +1,18 @@
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: trainschedule-deployment
-#   labels:
-#     app: trainschedule
-# spec:
-#   replicas: 2
-#   selector:
-#     matchLabels:
-#       app: trainschedule
-#   template:
-#     metadata:
-#       labels:
-#         app: trainschedule
-#     spec:
-#       containers:
-#       - name: trainschedule
-#         image: bryanmartineze/train-schedule:latest
-#         ports:
-#         - containerPort: 8080
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: trainschedule
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: trainschedule
+
+---
 
 apiVersion: apps/v1
 kind: Deployment
@@ -39,32 +33,3 @@ spec:
         image: bryanmartineze/train-schedule:latest
         ports:
         - containerPort: 8080
----
-
-
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: trainschedule
-spec:
-  ports:
-    - port: 80
-      targetPort: 8080
-      protocol: TCP
-  type: NodePort
-  selector:
-    app.kubernetes.io/name: trainschedule
-
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: trainschedule
-# spec:
-#   ports:
-#     - port: 80
-#       targetPort: 8080
-#       protocol: TCP
-#   type: NodePort
-#   selector:
-#     app: trainschedule
