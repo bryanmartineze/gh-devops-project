@@ -5,22 +5,9 @@ module "eks" {
 
   cluster_name    = "trainschedule"
   cluster_version = "1.25"
-
+  cluster_endpoint_private_access = true
   cluster_endpoint_public_access = true
   cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
-
-  cluster_addons = {
-    coredns = {
-      most_recent = true
-    }
-    kube-proxy = {
-      most_recent = true
-    }
-    vpc-cni = {
-      most_recent = true
-    }
-  }
-
   vpc_id                   = module.vpc.vpc_id
   subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.public_subnets
@@ -31,26 +18,18 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    blue = {}
-    green = {
+    trainschedule_nodes = {
       min_size     = 1
       max_size     = 2
       desired_size = 2
-
-      instance_types = ["t3.small"]
+      instance_types = ["t3a.small"]
+      
       capacity_type  = "SPOT"
-    }
-  }
-
-  # Fargate Profile(s)
-  fargate_profiles = {
-    default = {
-      name = "default"
-      selectors = [
-        {
-          namespace = "default"
-        }
-      ]
+      network_interfaces = [{
+        delete_on_termination       = true
+        associate_public_ip_address = true
+    }]
+    
     }
   }
   
@@ -67,6 +46,7 @@ module "eks" {
   }
   
   node_security_group_additional_rules = {
+    # allow connections from ALB security group
     ingress_allow_access_from_alb_sg = {
       type                     = "ingress"
       protocol                 = "-1"
@@ -74,6 +54,8 @@ module "eks" {
       to_port                  = 0
       source_security_group_id = aws_security_group.alb.id
     }
+    
+    # allow connections from EKS to EKS (internal calls)
     ingress_self_all = {
       description = "Node to node all ports/protocols"
       protocol = "-1"
@@ -82,6 +64,8 @@ module "eks" {
       type = "ingress"
       self = true
     }
+    
+    # allow connections from EKS to the internet
     egress_all = {
       description = "Node all egress"
       protocol = "-1"

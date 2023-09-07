@@ -1,49 +1,70 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: trainschedule-deployment
+#   labels:
+#     app: trainschedule
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: trainschedule
+#   template:
+#     metadata:
+#       labels:
+#         app: trainschedule
+#     spec:
+#       containers:
+#       - name: trainschedule
+#         image: bryanmartineze/train-schedule:latest
+#         ports:
+#         - containerPort: 8080
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: trainschedule-deployment
-  labels:
-    app: train-schedule
+  name: trainschedule
 spec:
-  replicas: 2
   selector:
     matchLabels:
-      app: train-schedule
+      app.kubernetes.io/name: trainschedule
+  replicas: 2
   template:
     metadata:
       labels:
-        app: train-schedule
+        app.kubernetes.io/name: trainschedule
     spec:
       containers:
-      - name: train-schedule
+      - name: trainschedule
         image: bryanmartineze/train-schedule:latest
         ports:
         - containerPort: 8080
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+
+
+
+apiVersion: v1
+kind: Service
 metadata:
-  name: trainschedule-ingress
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: trainschedule
-    alb.ingress.kubernetes.io/load-balancer-name: trainschedule
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
-    alb.ingress.kubernetes.io/security-groups: production-alb
-    external-dns.alpha.kubernetes.io/hostname: trainschedule.swodevops.net
-    external-dns.alpha.kubernetes.io/alias: "true"
+  name: trainschedule
 spec:
-  ingressClassName: alb
-  rules:
-    - host: trainschedule.swodevops.net
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: train-schedule
-                port:
-                  number: 80
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: trainschedule
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: trainschedule
+# spec:
+#   ports:
+#     - port: 80
+#       targetPort: 8080
+#       protocol: TCP
+#   type: NodePort
+#   selector:
+#     app: trainschedule

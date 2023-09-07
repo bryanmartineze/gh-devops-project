@@ -20,7 +20,7 @@ data "aws_ssm_parameter" "latest_amazon_linux_2023" {
 
 resource "aws_security_group" "docker-test" {
   name        = "docker-test-security-group"
-  description = "Allow ports 22, 8080 and icmp"
+  description = "Allow ports 22, 80 and icmp"
   vpc_id      = var.default_vpc
 
   tags = {
@@ -42,8 +42,8 @@ resource "aws_security_group" "docker-test" {
   }
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

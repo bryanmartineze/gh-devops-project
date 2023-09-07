@@ -41,11 +41,11 @@ data "aws_route53_zone" "base_domain" {
 # create AWS-issued SSL certificate
 resource "aws_acm_certificate" "eks_domain_cert" {
   domain_name               = "swodevops.net"
-  subject_alternative_names = ["*.${"swodevops.net"}"]
+  subject_alternative_names = ["*.swodevops.net"]
   validation_method         = "DNS"
 
   tags = {
-    Name = "${"swodevops.net"}"
+    Name = "swodevops.net"
   }
 }
 resource "aws_route53_record" "eks_domain_cert_validation_dns" {
@@ -77,11 +77,11 @@ resource "kubernetes_service_account" "load_balancer_controller" {
 
     labels = {
       "app.kubernetes.io/component" = "controller"
-      "app.kubernetes.io/name"      = "aws-load_balancer_controller"
+      "app.kubernetes.io/name"      = "aws-load-balancer-controller"
     }
 
     annotations = {
-      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${var.aws_account_id}:role/${"load-balancer-controller"}"
+      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${var.aws_account_id}:role/load-balancer-controller"
     }
   }
 }
@@ -156,7 +156,7 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = "arn:aws:iam::${var.aws_account_id}:role/${"external_dns"}"
+    value = "arn:aws:iam::${var.aws_account_id}:role/external_dns"
     }
 
   set {
