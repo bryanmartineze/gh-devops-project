@@ -35,17 +35,17 @@ module "eks_external_dns_iam" {
 # get (externally configured) DNS Zone
 # ATTENTION: if you don't have a Route53 Zone already, replace this data by a new resource
 data "aws_route53_zone" "base_domain" {
-  name = "swodevops.net"
+  name = var.customer_hosted_zone
 }
 
 # create AWS-issued SSL certificate
 resource "aws_acm_certificate" "eks_domain_cert" {
-  domain_name               = "swodevops.net"
-  subject_alternative_names = ["*.swodevops.net"]
+  domain_name               = var.customer_hosted_zone
+  subject_alternative_names = ["*.${var.customer_hosted_zone}"]
   validation_method         = "DNS"
 
   tags = {
-    Name = "swodevops.net"
+    Name = var.customer_hosted_zone
   }
 }
 resource "aws_route53_record" "eks_domain_cert_validation_dns" {
@@ -161,7 +161,7 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "domainFilters"
-    value = "{swodevops.net}"
+    value = "{${var.customer_hosted_zone}}"
   }
 
   set {

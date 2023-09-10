@@ -1,3 +1,4 @@
 Dockerfile
-terraform
+terraform-test
+terraform-prod
 dist

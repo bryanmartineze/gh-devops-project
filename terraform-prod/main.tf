@@ -24,6 +24,10 @@ variable "aws_eks_admin2_arn" {
 
 }
 
+variable "customer_hosted_zone" {
+  
+}
+
 provider "aws" {
   region = var.aws_region
 }

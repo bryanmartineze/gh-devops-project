@@ -10,64 +10,64 @@ on:
 
 jobs:
 
-  # build-and-test-with-gradle:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout project sources
-  #       uses: actions/checkout@v3
-  #     - name: Set up Java 8
-  #       uses: actions/setup-java@v2
-  #       with:
-  #         java-version: '8'
-  #         distribution: 'adopt'
-  #     - name: Check Java version
-  #       run: java -version
-  #     - name: Setup Gradle and build
-  #       run: |
-  #           ./gradlew build
-  #     - name: Archive artifacts
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: zipped-bundle
-  #         path: dist/trainSchedule.zip
+  build-and-test-with-gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Set up Java 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Check Java version
+        run: java -version
+      - name: Setup Gradle and build
+        run: |
+            ./gradlew build
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: zipped-bundle
+          path: dist/trainSchedule.zip
     
           
-  # upload-artifact-to-s3:
-  #   runs-on: ubuntu-latest
-  #   needs: build-and-test-with-gradle
-  #   steps:
-  #     - name: Download Artifact
-  #       uses: actions/download-artifact@v2
-  #       with:
-  #         name: zipped-bundle
-  #     - name: Configure AWS Credentials
-  #       uses: aws-actions/configure-aws-credentials@v2
-  #       with:
-  #         role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
-  #         aws-region: us-east-1
-  #     - name: Upload to S3
-  #       run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
+  upload-artifact-to-s3:
+    runs-on: ubuntu-latest
+    needs: build-and-test-with-gradle
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: zipped-bundle
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
+          aws-region: us-east-1
+      - name: Upload to S3
+        run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
        
-  # push-to-dockerhub:
-  #   runs-on: ubuntu-latest
-  #   needs: build-and-test-with-gradle
-  #   steps:
-  #     - name: Checkout project sources
-  #       uses: actions/checkout@v3
-  #     - name: docker login
-  #       env: 
-  #         DOCKER_USER: ${{ secrets.DOCKER_USER }}
-  #         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  #       run: |
-  #         docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-  #     - name: build docker image
-  #       run: docker build -t bryanmartineze/train-schedule:latest .
-  #     - name: docker push
-  #       run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
+  push-to-dockerhub:
+    runs-on: ubuntu-latest
+    needs: build-and-test-with-gradle
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: docker login
+        env: 
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+      - name: build docker image
+        run: docker build -t bryanmartineze/train-schedule:latest .
+      - name: docker push
+        run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
        
   provision-test-infrastructure-with-terraform:
     runs-on: ubuntu-latest
-    # needs: push-to-dockerhub
+    needs: push-to-dockerhub
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
@@ -83,40 +83,40 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
           terraform_wrapper: false
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: terraform-test
         id: init
         run: terraform init
       - name: Terraform Lint
-        working-directory: terraform
+        working-directory: terraform-test
         id: fmt
         run: terraform fmt -check
         continue-on-error: true
       - name: Terraform Validate
-        working-directory: terraform
+        working-directory: terraform-test
         id: validate
         run: terraform validate -no-color
       - name: Terraform Plan
-        working-directory: terraform
+        working-directory: terraform-test
         id: plan
         run: terraform plan -no-color
         continue-on-error: true
       - name: Terraform Plan Status
-        working-directory: terraform
+        working-directory: terraform-test
         if: steps.plan.outcome == 'failure'
         run: exit 1
       - name: Terraform Apply
         id: apply
-        working-directory: terraform
+        working-directory: terraform-test
         run: terraform apply -auto-approve
       - name: retrieve docker_ip from terraform output
         id: retrieve_ip
-        working-directory: terraform
+        working-directory: terraform-test
         run: |
           ip=$(terraform output -raw docker_ip)
           echo ip=$ip >> $GITHUB_OUTPUT
       - name: retrieve ssh key from terraform output
         id: retrieve_key
-        working-directory: terraform
+        working-directory: terraform-test
         run: |
           terraform output -raw docker_key > /tmp/docker_key.pem
       - name: upload ssh key to archive
@@ -125,7 +125,7 @@ jobs:
           name: ssh-key
           path: /tmp/docker_key.pem
 
-  provision-docker-with-ansible:
+  provision-docker-test-with-ansible:
     runs-on: ubuntu-latest
     needs: provision-test-infrastructure-with-terraform
     steps:
@@ -166,3 +166,45 @@ jobs:
         working-directory: ansible
         run: |
           ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
+    
+  provision-prod-infrastructure-with-terraform:
+    runs-on: ubuntu-latest
+     needs: push-to-dockerhub
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          terraform_wrapper: false
+      - name: Terraform Init
+        working-directory: terraform
+        id: init
+        run: terraform init
+      - name: Terraform Lint
+        working-directory: terraform
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+      - name: Terraform Validate
+        working-directory: terraform
+        id: validate
+        run: terraform validate -no-color
+      - name: Terraform Plan
+        working-directory: terraform
+        id: plan
+        run: terraform plan -no-color
+        continue-on-error: true
+      - name: Terraform Plan Status
+        working-directory: terraform
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+      - name: Terraform Apply
+        id: apply
+        working-directory: terraform
+        run: terraform apply -auto-approve
