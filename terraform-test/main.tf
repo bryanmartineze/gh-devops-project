@@ -3,7 +3,7 @@ terraform {
     organization = "bryanmartineze-devops"
 
     workspaces {
-      name = "cicd-pipeline-example"
+      name = "cicd-pipeline-example-test"
     }
   }
 }
