@@ -183,30 +183,30 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
           terraform_wrapper: false
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: terraform-prod
         id: init
         run: terraform init
       - name: Terraform Lint
-        working-directory: terraform
+        working-directory: terraform-prod
         id: fmt
         run: terraform fmt -check
         continue-on-error: true
       - name: Terraform Validate
-        working-directory: terraform
+        working-directory: terraform-prod
         id: validate
         run: terraform validate -no-color
       - name: Terraform Plan
-        working-directory: terraform
+        working-directory: terraform-prod
         id: plan
         run: terraform plan -no-color
         continue-on-error: true
       - name: Terraform Plan Status
-        working-directory: terraform
+        working-directory: terraform-prod
         if: steps.plan.outcome == 'failure'
         run: exit 1
       - name: Terraform Apply
         id: apply
-        working-directory: terraform
+        working-directory: terraform-prod
         run: terraform apply -auto-approve
   
   deploy-trainschedule-to-kubernetes:
