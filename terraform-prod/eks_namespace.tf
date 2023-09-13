@@ -8,4 +8,5 @@ resource "kubernetes_namespace" "eks_namespaces" {
     }
     name = each.key
   }
+  
 }
