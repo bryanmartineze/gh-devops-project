@@ -2,3 +2,6 @@ Dockerfile
 terraform-test
 terraform-prod
 dist
+trainschedule-deployment-definition.yaml
+trainschedule-ingress-definition.yaml
+external_dns_testing.yaml
