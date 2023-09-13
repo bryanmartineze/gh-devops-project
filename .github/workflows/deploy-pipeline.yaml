@@ -210,6 +210,7 @@ jobs:
         run: terraform apply -auto-approve
   
   deploy-trainschedule-to-kubernetes:
+    needs: provision-prod-infrastructure-with-terraform
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project sources
