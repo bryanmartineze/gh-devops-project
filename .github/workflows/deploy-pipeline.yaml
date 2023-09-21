@@ -252,7 +252,7 @@ jobs:
         aws eks update-kubeconfig --name trainschedule --region ${{ secrets.AWS_REGION }}
     - uses: azure/setup-helm@v3
       with:
-         version: default # default is latest (stable)
+         version: latest # default is latest (stable)
          token: ${{ secrets.GITHUB_TOKEN }} # only needed if version is 'latest'
       id: install
     - name: Add helm charts
@@ -271,7 +271,7 @@ jobs:
       run: |
         helm install grafana grafana/grafana \
         --namespace monitoring \
-        --set persistence.storageClassName="standard" \
+        --set persistence.storageClassName="gp3" \
         --set persistence.enabled=true \
         --set adminPassword='subje' \
         --values grafana.yaml \
