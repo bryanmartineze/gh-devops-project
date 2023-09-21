@@ -235,7 +235,7 @@ jobs:
       
       
   deploy-monitor-tools-to-eks:
-    needs: deploy-trainschedule-to-kubernetes
+    needs: deploy-trainschedule-to-eks
     runs-on: ubuntu-latest
     steps:
     - name: Checkout project sources
