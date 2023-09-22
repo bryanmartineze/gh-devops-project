@@ -264,16 +264,16 @@ jobs:
       run: |
         helm install prometheus prometheus-community/prometheus \
         --namespace monitoring \
-        --set alertmanager.persistentVolume.storageClass="gp3" \
-        --set server.persistentVolume.storageClass="gp3" \
+        --set alertmanager.persistentVolume.storageClass="gp2" \
+        --set server.persistentVolume.storageClass="gp2" \
     - name: Install Grafana
       working-directory: monitoring
       run: |
         helm install grafana grafana/grafana \
         --namespace monitoring \
-        --set persistence.storageClassName="gp3" \
+        --set persistence.storageClassName="gp2" \
         --set persistence.enabled=true \
-        --set adminPassword='subje' \
+        --set adminPassword= ${{ secrets.GRAFANA_PASSWORD }} \
         --values grafana.yaml \
         --set service.type="NodePort"
     - name: Install Ingress for Grafana
