@@ -224,14 +224,14 @@ jobs:
       - name: wait until managed nodes spawn
         run: |
           sleep 60
-      - name: Run kubernetes deployments
-        working-directory: kubernetes
-        run: |
-          aws eks update-kubeconfig \
-          --name trainschedule \
-          --region ${{ secrets.AWS_REGION }}
-          kubectl create -f trainschedule-deployment-definition.yaml
-          kubectl create -f trainschedule-ingress-definition.yaml
+      # - name: Run kubernetes deployments
+      #   working-directory: kubernetes
+      #   run: |
+      #     aws eks update-kubeconfig \
+      #     --name trainschedule \
+      #     --region ${{ secrets.AWS_REGION }}
+      #     kubectl create -f trainschedule-deployment-definition.yaml
+      #     kubectl create -f trainschedule-ingress-definition.yaml
       
       
   deploy-monitor-tools-to-eks:
@@ -276,7 +276,7 @@ jobs:
         --set adminPassword=${{ secrets.GRAFANA_PASSWORD }} \
         --values grafana-configuration.yaml \
         --set service.type="NodePort"
-    - name: Install Ingress for Grafana
-      working-directory: monitoring
-      run: |
-        kubectl create -f grafana-ingress-definition.yaml
+    # - name: Install Ingress for Grafana
+    #   working-directory: monitoring
+    #   run: |
+    #     kubectl create -f grafana-ingress-definition.yaml

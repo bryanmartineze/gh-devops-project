@@ -9,7 +9,7 @@ data "aws_availability_zones" "available_azs" {
 
 # reserve Elastic IP to be used in our NAT gateway
 resource "aws_eip" "nat_gw_elastic_ip" {
-  vpc = true
+  # vpc = true
 
   tags = {
     Name = "production-nat-eip"
@@ -19,7 +19,7 @@ resource "aws_eip" "nat_gw_elastic_ip" {
 # create VPC using the official AWS module
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "4.0.1"
+  version = "5.0.0"
 
   name = "production-vpc"
   cidr = var.vpc_cidr
