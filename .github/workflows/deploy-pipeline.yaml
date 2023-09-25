@@ -68,7 +68,7 @@ jobs:
        
   provision-test-infrastructure-with-terraform:
     runs-on: ubuntu-latest
-    needs: push-to-dockerhub
+    # needs: push-to-dockerhub
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
