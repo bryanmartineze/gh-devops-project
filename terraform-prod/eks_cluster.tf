@@ -15,21 +15,6 @@ module "eks" {
   enable_irsa = true
 
   cluster_addons = {
-    kube-proxy = {
-      addon_version = "v1.24.7-eksbuild.2"
-      resolve_conflicts="PRESERVE"
-    }
-    vpc-cni    = {
-      addon_version = "v1.11.4-eksbuild.1"
-      resolve_conflicts="PRESERVE"
-    }
-    coredns = {
-      addon_version = "v1.8.7-eksbuild.3"
-      configuration_values = jsonencode({
-        computeType = "Fargate"
-      })
-      resolve_conflicts="PRESERVE"
-    }
     aws-ebs-csi-driver = {
       service_account_role_arn = "arn:aws:iam::${var.aws_account_id}:role/${module.eks.cluster_name}-ebs-csi-controller"
     }
