@@ -76,6 +76,27 @@ jobs:
     outputs: 
           ip: ${{ steps.retrieve_ip.outputs.ip }}
     steps:
+      - name: Post to a Slack channel
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ vars.CHANNEL_ID }}
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*GitHub Action build result: ${{ job.status }}*\n*For more details, please follow the link:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
       - name: Checkout project sources
         uses: actions/checkout@v3
       - name: Setup terraform
@@ -125,27 +146,6 @@ jobs:
         with:
           name: ssh-key
           path: /tmp/docker_key.pem
-      - name: Post to a Slack channel
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          channel-id: ${{ vars.CHANNEL_ID }}
-          payload: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*GitHub Action build result: ${{ job.status }}*\n$*For more details, please follow the link:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
-                },
-                {
-                  "type": "divider"
-                }
-              ]
-            }
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   provision-docker-test-with-ansible:
     runs-on: ubuntu-latest
