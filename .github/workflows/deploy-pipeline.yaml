@@ -1,56 +1,197 @@
 permissions:
   id-token: write
-  #Was changed from read to write to create a checkout -b to gh-pahes
+  #Was changed from read to write to create a checkout -b to gh-pages
   contents: write
 
-name: Deploy train schedule
+name: Deploy trainschedule
 on: 
 
   workflow_dispatch:
 
 jobs:
-
-  build:
+  
+  
+  build-and-test-with-gradle:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout project sources
-      uses: actions/checkout@v3
-    - name: Set up Java 8
-      uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'adopt'
-    - name: Check Java version
-      run: java -version
-    - name: Setup Gradle and build
-      run: |
-          ./gradlew build
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: zipped-bundle
-        path: dist/trainSchedule.zip
-    
+      - name: Post to a Slack channel
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ vars.CHANNEL_ID }}
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*GitHub Action build Initiated!*\n*For more details, please follow the link:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}     
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Set up Java 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Check Java version
+        run: java -version
+      - name: Setup Gradle and build
+        run: |
+            ./gradlew build
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: zipped-bundle
+          path: dist/trainSchedule.zip
           
-  upload:
+  upload-artifact-to-s3:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-and-test-with-gradle
     steps:
-     - name: Download Artifact
-       uses: actions/download-artifact@v2
-       with:
-        name: zipped-bundle
-     - name: Configure AWS Credentials
-       uses: aws-actions/configure-aws-credentials@v2
-       with:
-        role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
-        aws-region: us-east-1
-     - name: Upload to S3
-       run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: zipped-bundle
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/gh_actions_role_example_pipeline
+          aws-region: us-east-1
+      - name: Upload to S3
+        run: aws s3 cp trainSchedule.zip s3://cicd-pipeline-example-artifacts/${{ github.repository }}/trainSchedule.zip
        
-  test-on-terraform:
+  push-to-dockerhub:
     runs-on: ubuntu-latest
-    needs: upload
+    needs: build-and-test-with-gradle
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: docker login
+        env: 
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+      - name: build docker image
+        run: docker build -t bryanmartineze/train-schedule:latest .
+      - name: docker push
+        run: docker push ${{ secrets.DOCKER_USER }}/train-schedule:latest
+       
+  provision-test-infrastructure-with-terraform:
+    runs-on: ubuntu-latest
+    needs: push-to-dockerhub
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+    outputs: 
+          ip: ${{ steps.retrieve_ip.outputs.ip }}
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          terraform_wrapper: false
+      - name: Terraform Init
+        working-directory: terraform-test
+        id: init
+        run: terraform init
+      - name: Terraform Lint
+        working-directory: terraform-test
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+      - name: Terraform Validate
+        working-directory: terraform-test
+        id: validate
+        run: terraform validate -no-color
+      - name: Terraform Plan
+        working-directory: terraform-test
+        id: plan
+        run: terraform plan -no-color
+        continue-on-error: true
+      - name: Terraform Plan Status
+        working-directory: terraform-test
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+      - name: Terraform Apply
+        id: apply
+        working-directory: terraform-test
+        run: terraform apply -auto-approve
+      - name: retrieve docker_ip from terraform output
+        id: retrieve_ip
+        working-directory: terraform-test
+        run: |
+          ip=$(terraform output -raw docker_ip)
+          echo ip=$ip >> $GITHUB_OUTPUT
+      - name: retrieve ssh key from terraform output
+        id: retrieve_key
+        working-directory: terraform-test
+        run: |
+          terraform output -raw docker_key > /tmp/docker_key.pem
+      - name: upload ssh key to archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ssh-key
+          path: /tmp/docker_key.pem
+
+  provision-docker-test-with-ansible:
+    runs-on: ubuntu-latest
+    needs: provision-test-infrastructure-with-terraform
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+      - name: Install dependencies
+        run: |
+          python -m pip install ansible
+      - name: Add hosts to inventory
+        run: |
+          echo "[servers]" > /tmp/inventory.ini
+          echo "${{ needs.provision-test-infrastructure-with-terraform.outputs.ip }}" >> /tmp/inventory.ini
+      - name: download ssh key
+        uses: actions/download-artifact@v2
+        with:
+          name: ssh-key
+      - name: move ssh key to /tmp/
+        run: |
+          mv docker_key.pem /tmp/docker_key.pem && chmod 600 /tmp/docker_key.pem 
+      - name: wait until the ec2 instance spawn
+        run: |
+          sleep 120
+      - name: Add hosts to known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -f /tmp/inventory.ini > known_hosts
+          cat known_hosts >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add /tmp/docker_key.pem
+      - name: Run ansible playbook
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock   
+        working-directory: ansible
+        run: |
+          ansible-playbook docker-test-playbook.yml -u ec2-user --private-key=/tmp/docker_key.pem -i /tmp/inventory.ini -vvv
+
+          
+  provision-prod-infrastructure-with-terraform:
+    runs-on: ubuntu-latest
+    needs: push-to-dockerhub
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
@@ -62,29 +203,123 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          terraform_wrapper: false
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: terraform-prod
         id: init
         run: terraform init
-      - name: Terraform Format #somekind of lint
-        working-directory: terraform
+      - name: Terraform Lint
+        working-directory: terraform-prod
         id: fmt
         run: terraform fmt -check
         continue-on-error: true
       - name: Terraform Validate
-        working-directory: terraform
+        working-directory: terraform-prod
         id: validate
         run: terraform validate -no-color
       - name: Terraform Plan
-        working-directory: terraform
+        working-directory: terraform-prod
         id: plan
         run: terraform plan -no-color
         continue-on-error: true
       - name: Terraform Plan Status
-        working-directory: terraform
+        working-directory: terraform-prod
         if: steps.plan.outcome == 'failure'
         run: exit 1
       - name: Terraform Apply
-        working-directory: terraform
+        id: apply
+        working-directory: terraform-prod
         run: terraform apply -auto-approve
-
+  
+  deploy-trainschedule-to-eks:
+    needs: provision-prod-infrastructure-with-terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: wait until managed nodes spawn
+        run: |
+          sleep 60
+      - name: Run kubernetes deployments
+        working-directory: kubernetes
+        run: |
+          aws eks update-kubeconfig \
+          --name trainschedule \
+          --region ${{ secrets.AWS_REGION }}
+          kubectl create -f trainschedule-deployment-definition.yaml
+          kubectl create -f trainschedule-ingress-definition.yaml
+      
+      
+  deploy-monitor-tools-to-eks:
+    needs: deploy-trainschedule-to-eks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project sources
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: login to eks
+        working-directory: kubernetes
+        run: |
+          aws eks update-kubeconfig --name trainschedule --region ${{ secrets.AWS_REGION }}
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest # default is latest (stable)
+          token: ${{ secrets.GITHUB_TOKEN }} # only needed if version is 'latest'
+        id: install
+      - name: Add helm charts
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+      - name: Install Prometheus
+        run: |
+          helm install prometheus prometheus-community/prometheus \
+          --namespace monitoring \
+          --set alertmanager.persistentVolume.storageClass="gp2" \
+          --set server.persistentVolume.storageClass="gp2" \
+      - name: Install Grafana
+        working-directory: monitoring
+        run: |
+          helm install grafana grafana/grafana \
+          --namespace monitoring \
+          --set persistence.storageClassName="gp2" \
+          --set persistence.enabled=true \
+          --set adminPassword=${{ secrets.GRAFANA_PASSWORD }} \
+          --values grafana-configuration.yaml \
+          --set service.type="NodePort"
+      - name: Install Ingress for Grafana
+        working-directory: monitoring
+        run: |
+          kubectl create -f grafana-ingress-definition.yaml
+      - name: Post to a Slack channel
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ vars.CHANNEL_ID }}
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*GitHub Action build finnished with status: ${{ job.status }}!*\n*For more details, please follow the link:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                },
+                {
+                  "type": "divider"
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}     

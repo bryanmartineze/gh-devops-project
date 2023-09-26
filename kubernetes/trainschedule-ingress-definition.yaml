@@ -1,0 +1,29 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trainschedule-ingress-rules
+  namespace: trainschedule
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: trainschedule
+    alb.ingress.kubernetes.io/load-balancer-name: trainschedule
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/security-groups: production-alb
+    external-dns.alpha.kubernetes.io/hostname: trainschedule.swodevops.net
+    external-dns.alpha.kubernetes.io/alias: "true"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: trainschedule.swodevops.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: trainschedule
+                port:
+                  number: 80
