@@ -10,9 +10,9 @@
     - Confirm that the code exist on GitHub
 
 2) Setup you on AWS Account, and create a role Terraform to use OIDC auth to deploy Infrastructure:
-
-
-
+   - Go to IAM and create a Role with Custom Truth Policy
+   - Follow this guide https://vimalpaliwal.medium.com/securing-authentication-between-terraform-cloud-and-aws-using-oidc-67c2de31ec89
+   - Grant AdministratorAccess in order to grant power to create whatever resources are needed for this Pipeline
 
 2) Create a Terraform Cloud account:
     - Go to https://app.terraform.io/session and create a Terraform Cloud account
@@ -23,6 +23,7 @@
     - Go to User Settings > Tokens > Create an API Token, please store this Token in a safe location
     - Replace the account name provide inside of terraform-prod/main.tf and terraform-test/main.tf with the name of your organization (instead of bryanmartineze-devops).
     - Inside of each workspace, define the variables as desired: aws_account_id, aws_eks_admin1_arn, aws_eks_admin2_arn, aws_region, customer_hosted_zone, TFC_AWS_PROVIDER_AUTH and TFC_AWS_RUN_ROLE_ARN
+    - 
 
 ## Running the app
 
