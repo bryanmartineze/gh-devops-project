@@ -68,4 +68,4 @@ Once it is running, you can access it in a browser at [http://localhost:8080](ht
 
 # Dockerfile
 
-Container should be running as docker run -d -p 8080:3000 <YOUR_REPO/YOUR_IMAGE>
+Container should be running as docker run -d -p 80:8080 <YOUR_REPO/YOUR_IMAGE>
