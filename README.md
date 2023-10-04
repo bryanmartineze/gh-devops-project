@@ -43,7 +43,6 @@
 
 
 7) Create Secrets inside the Github Actions Workflow:
-
     - AWS_ACCOUNT_ID
     - AWS_REGION
     - AWS_ACCESS_KEY_ID (For eks admin)
@@ -53,6 +52,9 @@
     - GRAFANA_PASSWORD
     - SLACK_BOT_TOKEN (Instructions last step)
     - TF_API_TOKEN
+
+8) Create a Route53 public domain:
+   - It is necessary in order to make the external-dns work (see more at https://github.com/kubernetes-sigs/external-dns) in my case, I named it swodevops.net
 
 ## Running the app
 
