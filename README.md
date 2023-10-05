@@ -37,6 +37,7 @@
    - Install the app to your workspace.
    - Copy the app's Bot Token from the OAuth & Permissions page and add it as a secret in your repo settings named SLACK_BOT_TOKEN.
    - Invite the bot user into the channel you wish to post messages to (/invite @bot_user_name).
+   - Define a new enviroment variable in github actions with the name of CHANNEL_ID.
 
 6) Create a dockerhub account to push into a public registry:
    - Go to https://hub.docker.com/ and create an account.
